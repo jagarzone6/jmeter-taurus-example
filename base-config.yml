@@ -1,0 +1,37 @@
+settings:
+  env:
+    JMETER: /home/jage/apache-jmeter-5.2.1
+
+modules:
+  jmeter:
+    path: ${JMETER}
+    properties:
+        log_level: ERROR
+  console:
+    disable: false #set to true for usual jmeter console logging and not Taurus console
+
+scenarios:
+  performance-test:
+      script: ./rendimiento.jmx
+      variables:
+        total_duration: 180
+        group2_duration: 120
+        group3_duration: 60
+        number_of_threads: 5 #should de 1000 (but keeping 5 to avoid public API firewall mark my ip as DoS attack)
+
+execution: 
+- scenario: performance-test
+
+reporting:
+- final-stats
+- console
+- module: passfail
+  criteria:
+  - avg-rt>1200ms
+  - fail>3%
+
+services:
+  - module: shellexec
+    post-process: 
+    - ${JMETER}/bin/jmeter -Jjmeter.reportgenerator.overall_granularity=5000 -Jjmeter.save.saveservice.assertion_results_failure_message=false -g ${TAURUS_ARTIFACTS_DIR}/kpi.jtl -o ${TAURUS_ARTIFACTS_DIR}/htmlreport
+
